@@ -67,7 +67,7 @@ func Load() *Config {
 	if err := v.ReadInConfig(); err != nil {
 		log.Printf("[config] no config file found, using defaults/env: %v", err)
 	}
-
+//
 	// Create an empty Config struct to fill.
 	var c Config
 	// Unmarshal Viper’s aggregated settings (defaults + file + env) into the struct.
