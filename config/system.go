@@ -31,7 +31,7 @@ type Config struct {
 	SQLitePath   string `mapstructure:"sqlite_path"`   // "app.db"
 	SQLServerDSN string `mapstructure:"sqlserver_dsn"` // sqlserver://user:pass@host:1433?database=DB
 
-	//	// Redis settings for caching, sessions, etc.
+	//
 	//
 
 	RedisAddr string `mapstructure:"redis_addr"`     // "localhost:6379" // Host:port for Redis server.
