@@ -1,36 +1,44 @@
-package routes
+package routes // Router setup layer.
 
-import (
-	"time"
+import ( // Imports used in the router.
+	"time" // For JWT expiration type.
 
-	"HelmyTask/handlers" //http handler
-	"HelmyTask/middlewares" //logging , recovery , auth
-	"HelmyTask/services" //servic interface used by handlers 
+	"HelmyTask/handlers" // User handler constructor.
+	"HelmyTask/middlewares" // Logging & recovery & auth middlewares.
+	"HelmyTask/services" // User service interface.
 
-	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin" // Gin router.
 )
 
-
-//setup attaches middlewares and routes to a given gin engine 
-//it keeps main.go small and makes routes testbale 
+// Setup attaches middlewares and registers all endpoints.
 func Setup(r *gin.Engine, svc services.UserService, jwtSecret string, jwtExp time.Duration) {
-	// global middlewares run for every request
-	r.Use(middlewares.RequestLogger(), middlewares.Recovery())
+	// Attach standard middlewares globally.
+	r.Use(middlewares.RequestLogger(), middlewares.Recovery()) // Access log + panic recovery.
 
-	// Swagger static (very simple)
-	//serve swagger spec as a static file so the clients can import it easily 
+	// Swagger (if you have docs/swagger.yaml); serves static file at /swagger.yaml.
 	r.StaticFile("/swagger.yaml", "./docs/swagger.yaml")
 
-	//versioned Api group fpr clarity and future compatibilty 
+	// Group API under /api/v1 for versioning.
 	api := r.Group("/api/v1")
 
-	// auth endpoints
+	// Create the user handler (injecting service + JWT parameters).
 	uh := handlers.NewUserHandler(svc, jwtSecret, jwtExp)
-	api.POST("/auth/register", uh.Register)
-	api.POST("/auth/login", uh.Login)
 
-	// protected endpoints group required valid jwt 
+	// Public auth endpoints (no JWT required).
+	api.POST("/auth/register", uh.Register) // Register new user.
+	api.POST("/auth/login", uh.Login) // Login and get JWT.
+
+	// Protected group (requires valid Authorization: Bearer <token>).
 	protected := api.Group("/")
-	protected.Use(middlewares.Auth(jwtSecret)) //attach auth middleware to this gruop 
-	protected.GET("/me", uh.Me) //current user profile 
+	protected.Use(middlewares.Auth(jwtSecret)) // JWT auth middleware.
+
+	// "Me" endpoint (current user).
+	protected.GET("/me", uh.GetUser) // You could point to a dedicated 'Me' handler; here we reuse GetUser with context in your baseline.
+
+	// RESTful CRUD for users (admin-style).
+	protected.POST("/users", uh.CreateUser) // Create
+	protected.GET("/users", uh.ListUsers) // List (paginated)
+	protected.GET("/users/:id", uh.GetUser) // Read (one)
+	protected.PUT("/users/:id", uh.UpdateUser) // Update (partial)
+	protected.DELETE("/users/:id", uh.DeleteUser) // Delete
 }
